@@ -14,6 +14,9 @@ ORIGINAL_API_URL = "https://lynx.mireiariosss.workers.dev/api/search"
 # 🔥 API Expiry Date (4 din — aaj included)
 API_EXPIRY = "2099-11-05"
 
+# 🔥 DEBUG MODE - True karne par raw response dikhega
+DEBUG = True  # <-- Isko True rakho test ke liye, baad mein False karo
+
 def is_expired():
     try:
         expiry = datetime.strptime(API_EXPIRY, "%Y-%m-%d")
@@ -25,11 +28,12 @@ def is_expired():
 def home():
     return jsonify({
         "status": True,
-        "message": "Lynx Number Info API is working! (X-TRACE Edition)",
+        "message": "Unknown Number Info API is working! (X-TRACE Edition)",
         "developer": "@x_TRACEOWNER",
         "credit": "@x_TRACEOWNER",
         "expires_on": API_EXPIRY,
         "status": "Active" if not is_expired() else "Expired",
+        "debug_mode": DEBUG,
         "endpoints": {
             "info": "/api/search?key=YOUR_KEY&number=PHONE_NUMBER"
         },
@@ -96,7 +100,15 @@ def lynx_search():
         response.raise_for_status()
         data = response.json()
         
-        # 🔥 Clean response
+        # 🔥 DEBUG: Agar debug mode on hai toh raw response dikhao
+        if DEBUG:
+            return jsonify({
+                "debug": True,
+                "original_response": data,
+                "note": "Debug mode is ON. Turn DEBUG=False in code."
+            }), 200
+        
+        # 🔥 Clean response (only when debug is off)
         if isinstance(data, dict):
             # Remove join: @lynx_apis
             data.pop('join', None)
