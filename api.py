@@ -11,11 +11,8 @@ VALID_KEY = "@x_TRACEOWNER"
 # Original API details
 ORIGINAL_API_URL = "https://lynx.mireiariosss.workers.dev/api/search"
 
-# 🔥 API Expiry Date (4 din — aaj included)
+# 🔥 API Expiry Date
 API_EXPIRY = "2099-11-05"
-
-# 🔥 DEBUG MODE - True karne par raw response dikhega
-DEBUG = True  # <-- Isko True rakho test ke liye, baad mein False karo
 
 def is_expired():
     try:
@@ -33,7 +30,6 @@ def home():
         "credit": "@x_TRACEOWNER",
         "expires_on": API_EXPIRY,
         "status": "Active" if not is_expired() else "Expired",
-        "debug_mode": DEBUG,
         "endpoints": {
             "info": "/api/search?key=YOUR_KEY&number=PHONE_NUMBER"
         },
@@ -42,7 +38,6 @@ def home():
 
 @app.route('/api/search')
 def lynx_search():
-    # 🔥 Check if API is expired
     if is_expired():
         return jsonify({
             "status": False,
@@ -52,63 +47,30 @@ def lynx_search():
             "expires_on": API_EXPIRY
         }), 401
     
-    # Get parameters
     key = request.args.get('key')
     number = request.args.get('number')
     
-    # 🔐 Key verify
     if not key:
-        return jsonify({
-            "status": False,
-            "error": "Missing API Key!",
-            "developer": "@x_TRACEOWNER",
-            "credit": "@x_TRACEOWNER"
-        }), 400
+        return jsonify({"status": False, "error": "Missing API Key!", "developer": "@x_TRACEOWNER", "credit": "@x_TRACEOWNER"}), 400
         
     if key != VALID_KEY:
-        return jsonify({
-            "status": False,
-            "error": "Invalid API Key!",
-            "developer": "@x_TRACEOWNER",
-            "credit": "@x_TRACEOWNER"
-        }), 401
+        return jsonify({"status": False, "error": "Invalid API Key!", "developer": "@x_TRACEOWNER", "credit": "@x_TRACEOWNER"}), 401
     
     if not number:
-        return jsonify({
-            "status": False,
-            "error": "Missing 'number' parameter!",
-            "developer": "@x_TRACEOWNER",
-            "credit": "@x_TRACEOWNER"
-        }), 400
+        return jsonify({"status": False, "error": "Missing 'number' parameter!", "developer": "@x_TRACEOWNER", "credit": "@x_TRACEOWNER"}), 400
     
-    # Clean phone number
     number = number.strip().replace(" ", "").replace("+", "")
     if number.startswith("91") and len(number) == 12:
         number = number[2:]
     
     if not number.isdigit() or len(number) != 10:
-        return jsonify({
-            "status": False,
-            "error": "Invalid phone number! Must be 10 digits.",
-            "developer": "@x_TRACEOWNER",
-            "credit": "@x_TRACEOWNER"
-        }), 400
+        return jsonify({"status": False, "error": "Invalid phone number! Must be 10 digits.", "developer": "@x_TRACEOWNER", "credit": "@x_TRACEOWNER"}), 400
     
-    # Forward to original API
     try:
         response = requests.get(f"{ORIGINAL_API_URL}/{number}", timeout=10)
         response.raise_for_status()
         data = response.json()
         
-        # 🔥 DEBUG: Agar debug mode on hai toh raw response dikhao
-        if DEBUG:
-            return jsonify({
-                "debug": True,
-                "original_response": data,
-                "note": "Debug mode is ON. Turn DEBUG=False in code."
-            }), 200
-        
-        # 🔥 Clean response (only when debug is off)
         if isinstance(data, dict):
             # Remove join: @lynx_apis
             data.pop('join', None)
