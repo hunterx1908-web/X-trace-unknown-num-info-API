@@ -1,21 +1,13 @@
 [project]
-name = "lynx-api-clone"
+name = "lynx-num-info-api"
 version = "1.0.0"
-description = "Lynx API Clone for Vercel - @lynx_apis"
-authors = [{name = "Lynx API Clone"}]
-readme = "README.md"
+description = "Lynx Number Info API with Expiry"
 requires-python = ">=3.9"
 dependencies = [
     "Flask==2.3.3",
-    "flask-cors==4.0.0",
     "requests==2.31.0",
-    "gunicorn==21.2.0",
-    "python-dotenv==1.0.0"
+    "gunicorn==21.2.0"
 ]
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [tool.vercel]
-builds = [{src = "api/index.py", use = "@vercel/python"}]
+entrypoint = "api:app"

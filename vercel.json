@@ -2,21 +2,21 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python"
+      "src": "api.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 10
+      }
     }
   ],
   "routes": [
     {
-      "src": "/api/search",
-      "dest": "/api/index.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/api/index.py"
+      "dest": "api.py"
     }
   ],
   "env": {
-    "API_KEY": ""
+    "FLASK_ENV": "production",
+    "PYTHON_VERSION": "3.9"
   }
 }

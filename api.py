@@ -1,111 +1,182 @@
 import os
-import json
 import requests
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-import re
+from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)
 
-# Config
-API_KEY = os.environ.get('API_KEY', '')
-TARGET_API = 'https://lynx.mireiariosss.workers.dev/api/search'
+# 🔑 Teri API Key
+VALID_KEY = "@x_TRACEOWNER"
 
-@app.route('/', methods=['GET'])
+# Original API details
+ORIGINAL_API_URL = "https://lynx.mireiariosss.workers.dev/api/search"
+
+# 🔥 API Expiry Date (4 din — aaj included)
+API_EXPIRY = "2026-09-05"
+
+def is_expired():
+    try:
+        expiry = datetime.strptime(API_EXPIRY, "%Y-%m-%d")
+        return datetime.utcnow() > expiry
+    except:
+        return False
+
+@app.route('/')
 def home():
     return jsonify({
-        'status': '🚀 Active',
-        'message': 'Lynx API Clone by @lynx_apis',
-        'endpoint': '/api/search?number=PHONE_NUMBER',
-        'example': '/api/search?number=9006640786',
-        'methods': ['GET', 'POST'],
-        'credit': 'Join: @lynx_apis'
+        "status": True,
+        "message": "Lynx Number Info API is working! (X-TRACE Edition)",
+        "developer": "@x_TRACEOWNER",
+        "credit": "@x_TRACEOWNER",
+        "expires_on": API_EXPIRY,
+        "status": "Active" if not is_expired() else "Expired",
+        "endpoints": {
+            "info": "/api/search?key=YOUR_KEY&number=PHONE_NUMBER"
+        },
+        "example": "/api/search?key=@x_TRACEOWNER&number=9006640786"
     })
 
-@app.route('/api/search', methods=['GET', 'POST', 'OPTIONS'])
-def search():
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
+@app.route('/api/search')
+def lynx_search():
+    # 🔥 Check if API is expired
+    if is_expired():
+        return jsonify({
+            "status": False,
+            "error": f"API expired on {API_EXPIRY}! Please contact support.",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER",
+            "expires_on": API_EXPIRY
+        }), 401
     
-    # Get number
-    if request.method == 'GET':
-        number = request.args.get('number')
-    else:
-        number = request.json.get('number') if request.is_json else None
+    # Get parameters
+    key = request.args.get('key')
+    number = request.args.get('number')
     
-    # Validate
+    # 🔐 Key verify
+    if not key:
+        return jsonify({
+            "status": False,
+            "error": "Missing API Key!",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
+        }), 400
+        
+    if key != VALID_KEY:
+        return jsonify({
+            "status": False,
+            "error": "Invalid API Key!",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
+        }), 401
+    
     if not number:
         return jsonify({
-            'success': False,
-            'error': '❌ Phone number required!',
-            'usage': 'GET /api/search?number=9006640786'
+            "status": False,
+            "error": "Missing 'number' parameter!",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
         }), 400
     
-    # Clean number
-    number = re.sub(r'[^0-9]', '', str(number))
+    # Clean phone number
+    number = number.strip().replace(" ", "").replace("+", "")
+    if number.startswith("91") and len(number) == 12:
+        number = number[2:]
     
-    if len(number) != 10:
+    if not number.isdigit() or len(number) != 10:
         return jsonify({
-            'success': False,
-            'error': '❌ Invalid number! Must be 10 digits'
+            "status": False,
+            "error": "Invalid phone number! Must be 10 digits.",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
         }), 400
     
-    # Call actual API
+    # Forward to original API
     try:
-        response = requests.get(
-            f'{TARGET_API}/{number}',
-            headers={
-                'Authorization': f'Bearer {API_KEY}',
-                'Content-Type': 'application/json'
-            },
-            timeout=30
-        )
-        
+        response = requests.get(f"{ORIGINAL_API_URL}/{number}", timeout=10)
+        response.raise_for_status()
         data = response.json()
         
-        # Add our own metadata
-        data['cloned_by'] = 'Vercel 🔥'
-        data['source'] = 'Lynx API'
-        data['api_key_used'] = '✅ Yes'
-        
-        # Extract unique numbers
-        if data.get('success') and data.get('results'):
-            unique_mobiles = list(set([
-                r.get('mobile') for r in data['results'] 
-                if r.get('mobile')
-            ]))
-            data['unique_mobiles'] = unique_mobiles
-            data['total_unique'] = len(unique_mobiles)
-        
-        return jsonify(data), response.status_code
+        # 🔥 Clean response
+        if isinstance(data, dict):
+            # Remove join: @lynx_apis
+            data.pop('join', None)
+            data.pop('developer', None)
+            data.pop('credit', None)
+            
+            # Check if data exists
+            if not data.get('results') or data.get('total') == 0:
+                return jsonify({
+                    "status": False,
+                    "message": "No data found",
+                    "developer": "@x_TRACEOWNER",
+                    "credit": "@x_TRACEOWNER"
+                }), 404
+            
+            # Add our branding
+            data['developer'] = '@x_TRACEOWNER'
+            data['credit'] = '@x_TRACEOWNER'
+            data['api_expires_on'] = API_EXPIRY
+            
+        return jsonify(data)
         
     except requests.exceptions.Timeout:
         return jsonify({
-            'success': False,
-            'error': '⏰ Request timeout'
+            "status": False,
+            "message": "Request timeout. Please try again later.",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
         }), 504
+        
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            "status": False,
+            "message": "No data found",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
+        }), 404
+        
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            "status": False,
+            "message": "No data found",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
+        }), 404
+        
     except Exception as e:
         return jsonify({
-            'success': False,
-            'error': f'💀 Error: {str(e)}'
-        }), 500
+            "status": False,
+            "message": "No data found",
+            "developer": "@x_TRACEOWNER",
+            "credit": "@x_TRACEOWNER"
+        }), 404
+
+@app.route('/api/search/<path:path>')
+def catch_all(path):
+    return jsonify({
+        "status": False,
+        "message": "No data found",
+        "developer": "@x_TRACEOWNER",
+        "credit": "@x_TRACEOWNER"
+    }), 404
 
 @app.errorhandler(404)
-def not_found(e):
+def not_found(error):
     return jsonify({
-        'success': False,
-        'error': '❌ 404 - Not Found',
-        'available_endpoints': ['/api/search?number=X']
+        "status": False,
+        "message": "No data found",
+        "developer": "@x_TRACEOWNER",
+        "credit": "@x_TRACEOWNER"
     }), 404
 
 @app.errorhandler(500)
-def server_error(e):
+def internal_error(error):
     return jsonify({
-        'success': False,
-        'error': '💀 Internal Server Error'
-    }), 500
+        "status": False,
+        "message": "No data found",
+        "developer": "@x_TRACEOWNER",
+        "credit": "@x_TRACEOWNER"
+    }), 404
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
