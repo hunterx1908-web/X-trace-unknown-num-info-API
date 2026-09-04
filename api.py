@@ -1,9 +1,21 @@
-import os
 from flask import Flask, request, jsonify
+import requests
 
 app = Flask(__name__)
 
-API_KEY = os.environ.get("API_KEY")
+# Your test key
+API_KEY = "@x_TRACEOWNER"
+
+# Harmless public demo API
+DEMO_API = "https://lynx.mireiariosss.workers.dev/api/search"
+
+
+@app.route("/")
+def home():
+    return jsonify({
+        "success": True,
+        "message": "X-Trace Testing API is online"
+    })
 
 
 @app.route("/api/search", methods=["GET"])
@@ -11,39 +23,40 @@ def search():
     key = request.args.get("key")
     query = request.args.get("query")
 
-    # API key verification
-    if not key or key != API_KEY:
+    # API key check
+    if key != API_KEY:
         return jsonify({
             "success": False,
             "message": "Invalid API key"
         }), 401
 
-    # Query validation
     if not query:
         return jsonify({
             "success": False,
             "message": "Query is required"
         }), 400
 
-    # Safe demo response
-    return jsonify({
-        "success": True,
-        "message": "Demo API response",
-        "query": query,
-        "data": {
-            "id": "DEMO-001",
-            "status": "active",
-            "source": "demo"
-        }
-    })
+    try:
+        response = requests.get(
+            DEMO_API,
+            timeout=10
+        )
 
+        response.raise_for_status()
 
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({
-        "success": True,
-        "message": "Demo API is online"
-    })
+        demo_data = response.json()
+
+        return jsonify({
+            "success": True,
+            "query": query,
+            "data": demo_data
+        })
+
+    except requests.RequestException as e:
+        return jsonify({
+            "success": False,
+            "message": "Upstream API error"
+        }), 502
 
 
 if __name__ == "__main__":
