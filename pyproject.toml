@@ -1,12 +1,9 @@
 [project]
-name = "lynx-num-info-api"
+name = "demo-api"
 version = "1.0.0"
+description = "Demo API for Vercel"
 requires-python = ">=3.9"
-dependencies = [
-    "Flask==2.3.3",
-    "requests==2.31.0",
-    "gunicorn==21.2.0"
-]
 
-[tool.vercel]
-entrypoint = "api:app"
+dependencies = [
+    "Flask==3.1.2"
+]
