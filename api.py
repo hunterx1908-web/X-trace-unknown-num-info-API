@@ -4,9 +4,6 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# 🔑 Sirf Teri API Key
-VALID_KEY = "@x_TRACEOWNER"
-
 # Original API
 ORIGINAL_API_URL = "https://lynx.mireiariosss.workers.dev/api/search"
 
@@ -14,34 +11,30 @@ ORIGINAL_API_URL = "https://lynx.mireiariosss.workers.dev/api/search"
 def home():
     return jsonify({
         "status": True,
-        "message": "Lynx Number Info API is working!",
-        "developer": "@x_TRACEOWNER",
-        "credit": "@x_TRACEOWNER"
+        "message": "Lynx Number Info API is working!"
     })
 
 @app.route('/api/search')
 def lynx_search():
-    key = request.args.get('key')
     number = request.args.get('number')
-    
-    # 🔐 Key verify
-    if key != VALID_KEY:
-        return jsonify({"status": False, "error": "Invalid API Key!"}), 401
     
     if not number:
         return jsonify({"status": False, "error": "Missing 'number' parameter!"}), 400
     
-    # Clean number
+    # 🔥 Sirf 10 digits
     number = number.strip().replace(" ", "").replace("+", "")
+    
+    # Agar 91 se start ho toh hata do
     if number.startswith("91") and len(number) == 12:
         number = number[2:]
     
+    # Sirf 10 digits allow
     if not number.isdigit() or len(number) != 10:
-        return jsonify({"status": False, "error": "Invalid phone number!"}), 400
+        return jsonify({"status": False, "error": "Invalid phone number! Must be 10 digits."}), 400
     
-    # 🔥 Sirf forward — kuch extra nahi
+    # 🔥 Forward to original API (with 91)
     try:
-        response = requests.get(f"{ORIGINAL_API_URL}/{number}", timeout=10)
+        response = requests.get(f"{ORIGINAL_API_URL}/91{number}", timeout=10)
         data = response.json()
         
         # Sirf join: @lynx_apis hatao
