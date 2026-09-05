@@ -11,8 +11,8 @@ VALID_KEY = "@x_TRACEOWNER"
 # Original API details
 ORIGINAL_API_URL = "https://lynx.mireiariosss.workers.dev/api/search"
 
-# 🔥 API Expiry Date (4 din — aaj included)
-API_EXPIRY = "2026-09-05"
+# 🔥 API Expiry Date (31 December 2026)
+API_EXPIRY = "2026-12-31"
 
 def is_expired():
     try:
@@ -90,7 +90,7 @@ def lynx_search():
             "credit": "@x_TRACEOWNER"
         }), 400
     
-    # Forward to original API
+    # 🔥 Forward to original API
     try:
         response = requests.get(f"{ORIGINAL_API_URL}/{number}", timeout=10)
         response.raise_for_status()
@@ -117,6 +117,7 @@ def lynx_search():
             data['credit'] = '@x_TRACEOWNER'
             data['api_expires_on'] = API_EXPIRY
             
+        # 🔥 Direct JSON bhejo (double-encode mat karo)
         return jsonify(data)
         
     except requests.exceptions.Timeout:
